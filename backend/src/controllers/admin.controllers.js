@@ -3,11 +3,7 @@ const Order = require("../models/Order");
 const asyncHandler = require("../middlewares/async.handler");
 const bcrypt = require("bcrypt");
 
-// ============================================================
-// @desc    List all pending vendor requests
-// @route   GET /api/admin/vendor-requests
-// @access  Private (admin only)
-// ============================================================
+
 const getPendingVendorRequests = asyncHandler(async (req, res) => {
   const requests = await User.find({ vendorRequestStatus: "pending" })
     .select(
@@ -22,11 +18,7 @@ const getPendingVendorRequests = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    List all vendors (approved + rejected history)
-// @route   GET /api/admin/vendors
-// @access  Private (admin only)
-// ============================================================
+
 const getAllVendors = asyncHandler(async (req, res) => {
   const { status } = req.query; // "pending" | "approved" | "rejected"
 
@@ -46,11 +38,7 @@ const getAllVendors = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Approve a vendor request
-// @route   PUT /api/admin/vendor-requests/:id/approve
-// @access  Private (admin only)
-// ============================================================
+
 const approveVendor = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
 
@@ -89,11 +77,7 @@ const approveVendor = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Reject a vendor request
-// @route   PUT /api/admin/vendor-requests/:id/reject
-// @access  Private (admin only)
-// ============================================================
+
 const rejectVendor = asyncHandler(async (req, res) => {
   const { reason } = req.body;
 
@@ -118,7 +102,7 @@ const rejectVendor = asyncHandler(async (req, res) => {
   user.vendorRequestReviewedAt = new Date();
   user.vendorRejectionReason = reason ? reason.trim() : "No reason provided";
 
-  // If they were somehow already a vendor, demote
+
   if (user.role === "vendor") {
     user.role = "customer";
   }
@@ -139,11 +123,7 @@ const rejectVendor = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Admin dashboard stats
-// @route   GET /api/admin/dashboard
-// @access  Private (admin only)
-// ============================================================
+
 const getDashboard = asyncHandler(async (req, res) => {
   const [
     totalCustomers,
@@ -239,7 +219,7 @@ const assignDelivery = asyncHandler(async (req, res) => {
   }
 
   order.deliveryBoy = delivery._id;
-  // Move status forward if it was still "placed"
+
   if (order.orderStatus === "placed" || order.orderStatus === "confirmed") {
     order.orderStatus = "shipped";
   }
@@ -279,12 +259,29 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     throw error;
   }
 
+  // FIX: If admin cancels the order, restore the stock appropriately
+  if (orderStatus === "cancelled" && order.orderStatus !== "cancelled") {
+    const stockWasApplied = order.paymentMethod === "cod" || order.isPaid;
+    if (stockWasApplied) {
+      await Promise.all(
+        order.items.map((item) =>
+          Product.findByIdAndUpdate(item.product, {
+            $inc: { stock: Number(item.quantity), sold: -Number(item.quantity) },
+          })
+        )
+      );
+    }
+    if (order.isPaid && order.paymentMethod === "razorpay") {
+      order.paymentStatus = "refunded";
+    }
+  }
+
   order.orderStatus = orderStatus;
 
   if (orderStatus === "delivered") {
     order.isDelivered = true;
     order.deliveredAt = new Date();
-    // Auto-mark paid for COD when delivered by admin
+
     if (order.paymentMethod === "cod" && !order.isPaid) {
       order.isPaid = true;
       order.paymentStatus = "paid";
@@ -314,11 +311,7 @@ const getDeliveryBoys = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Create a staff account (delivery / admin)
-// @route   POST /api/admin/create-staff
-// @access  Private (admin)
-// ============================================================
+
 const createStaff = asyncHandler(async (req, res) => {
   const { name, email, password, phone, role } = req.body;
 
@@ -379,11 +372,7 @@ const createStaff = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Toggle active status of any user (soft disable)
-// @route   PUT /api/admin/users/:id/toggle-active
-// @access  Private (admin)
-// ============================================================
+
 const toggleUserActive = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
 
@@ -416,11 +405,7 @@ const toggleUserActive = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    List all users (with filters)
-// @route   GET /api/admin/users
-// @access  Private (admin)
-// ============================================================
+
 const getAllUsers = asyncHandler(async (req, res) => {
   const { role, isActive, search } = req.query;
 
@@ -445,11 +430,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Delete a user (admin)
-// @route   DELETE /api/admin/users/:id
-// @access  Private (admin)
-// ============================================================
+
 const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
 
@@ -465,7 +446,7 @@ const deleteUser = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  // Root admin safety: don't allow deleting the bootstrap admin
+ 
   if (user.email === "admin@example.com") {
     const error = new Error("Cannot delete the bootstrap admin");
     error.statusCode = 403;

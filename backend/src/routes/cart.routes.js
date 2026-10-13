@@ -5,7 +5,7 @@ const { protect, authorize } = require("../middlewares/auth.middlewares");
 const router = express.Router();
 
 // All cart routes require login (user role)
-router.use(protect, authorize("user", "admin"));
+router.use(protect, authorize("user", "admin", "vendor", "delivery"));
 
 router.get("/", cartControllers.getCart);
 router.post("/", cartControllers.addToCart);

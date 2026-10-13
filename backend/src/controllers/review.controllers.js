@@ -68,15 +68,16 @@ const addReview = asyncHandler(async (req, res) => {
   }
 
   // ---- verify purchase + delivery ----
+  // ---- verify purchase (allows reviewing immediately after order) ----
   const purchased = await Order.findOne({
     user: req.user._id,
     "items.product": productId,
-    orderStatus: "delivered",
+    orderStatus: { $in: ["placed", "confirmed", "shipped", "out-for-delivery", "delivered"] },
   });
 
   if (!purchased) {
     const error = new Error(
-      "You can only review products you have purchased and received",
+      "You can only review products you have purchased",
     );
     error.statusCode = 403;
     throw error;

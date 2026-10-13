@@ -4,11 +4,7 @@ const jwt = require("jsonwebtoken");
 const asyncHandler = require("../middlewares/async.handler.js");
 const generateToken = require("../utils/generate.token.js");
 
-// ============================================================
-// @desc    Register a new user (public — only "user" role)
-// @route   POST /api/auth/register
-// @access  Public
-// ============================================================
+
 const register = asyncHandler(async (req, res) => {
   const { name, email, password, phone } = req.body;
 
@@ -30,7 +26,7 @@ const register = asyncHandler(async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  // Public registration always creates a user account.
+
   const user = await User.create({
     name: normalizedName,
     email: normalizedEmail,
@@ -52,11 +48,7 @@ const register = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Login (works for user / vendor / delivery / admin)
-// @route   POST /api/auth/login
-// @access  Public
-// ============================================================
+
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -95,7 +87,7 @@ const login = asyncHandler(async (req, res) => {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    maxAge: 30 * 24 * 60 * 60 * 1000, 
   });
 
   res.status(200).json({
@@ -111,11 +103,7 @@ const login = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Logout (clear cookie)
-// @route   POST /api/auth/logout
-// @access  Private (any role)
-// ============================================================
+
 const logout = asyncHandler(async (req, res) => {
   res.cookie("jwt", "", {
     httpOnly: true,
@@ -128,11 +116,7 @@ const logout = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Check if user is logged in (does NOT throw 401)
-// @route   GET /api/auth/is-logged-in
-// @access  Public
-// ============================================================
+
 const isLoggedIn = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
 
@@ -163,11 +147,7 @@ const isLoggedIn = asyncHandler(async (req, res) => {
   }
 });
 
-// ============================================================
-// @desc    Get current user profile (any role)
-// @route   GET /api/auth/profile
-// @access  Private
-// ============================================================
+
 const getProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).select("-password");
 
@@ -189,11 +169,7 @@ const getProfile = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Update current user profile (any role)
-// @route   PUT /api/auth/profile
-// @access  Private
-// ============================================================
+
 const updateProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
@@ -203,7 +179,7 @@ const updateProfile = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  // If email is being changed, make sure it's not taken
+
   if (req.body.email) {
     const normalizedEmail = req.body.email.toLowerCase().trim();
     if (normalizedEmail !== user.email) {
@@ -239,11 +215,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Delete own account (any role)
-// @route   DELETE /api/auth/profile
-// @access  Private
-// ============================================================
+
 const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
@@ -266,16 +238,7 @@ const deleteUser = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Create vendor / delivery / admin (admin only)
-// @route   POST /api/auth/create-account
-// @access  Private (admin only)
-// ============================================================
-// ============================================================
-// @desc    Customer requests to become a vendor
-// @route   POST /api/auth/request-vendor
-// @access  Private (customer only)
-// ============================================================
+
 const requestVendor = asyncHandler(async (req, res) => {
   const { businessName, businessAddress, businessPhone, reason } = req.body;
 
@@ -295,14 +258,14 @@ const requestVendor = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  // Already a vendor?
+
   if (user.role === "vendor") {
     const error = new Error("You are already a vendor");
     error.statusCode = 400;
     throw error;
   }
 
-  // Already pending?
+ 
   if (user.vendorRequestStatus === "pending") {
     const error = new Error(
       "You already have a pending vendor request. Please wait for admin review."
@@ -311,7 +274,7 @@ const requestVendor = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  // Update user
+
   user.vendorRequestStatus = "pending";
   user.vendorRequestDetails = {
     businessName: businessName.trim(),
@@ -330,11 +293,7 @@ const requestVendor = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Get my vendor request status
-// @route   GET /api/auth/vendor-request-status
-// @access  Private (customer)
-// ============================================================
+
 const getVendorRequestStatus = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).select(
     "role vendorRequestStatus vendorRequestDetails vendorRejectionReason vendorRequestReviewedAt"

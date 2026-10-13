@@ -4,7 +4,7 @@ const { protect, authorize } = require("../middlewares/auth.middlewares");
 
 const router = express.Router();
 
-router.use(protect, authorize("user", "admin"));
+router.use(protect, authorize("user", "admin", "vendor", "delivery"));
 
 router.post("/", orderControllers.createOrder);
 router.post("/verify", orderControllers.verifyPayment);

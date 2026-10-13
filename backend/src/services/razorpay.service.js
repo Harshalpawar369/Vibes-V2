@@ -7,24 +7,24 @@ const razorpay = new Razorpay({
 });
 
 /**
- * Create a Razorpay order.
- * @param {Number} amountInRupees
- * @param {String} receipt
- * @returns {Promise<Object>} Razorpay order object
+ * Create a Razorpay order with multi-vendor transfers.
  */
-const createRazorpayOrder = async (amountInRupees, receipt) => {
-  return razorpay.orders.create({
+const createRazorpayOrder = async (amountInRupees, receipt, transfers = []) => {
+  const options = {
     amount: Math.round(amountInRupees * 100), // paise
     currency: "INR",
     receipt,
     payment_capture: 1, // auto-capture
-  });
+  };
+
+  // If there are vendors with linked accounts, append the split logic
+  if (transfers && transfers.length > 0) {
+    options.transfers = transfers;
+  }
+
+  return razorpay.orders.create(options);
 };
 
-/**
- * Verify the payment signature returned by Razorpay.
- * @returns {Boolean} true if signature matches
- */
 const verifyRazorpaySignature = (
   razorpayOrderId,
   razorpayPaymentId,

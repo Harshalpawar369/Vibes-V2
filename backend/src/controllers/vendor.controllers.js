@@ -2,20 +2,24 @@ const Order = require("../models/Order");
 const Product = require("../models/Product");
 const Review = require("../models/Review");
 const asyncHandler = require("../middlewares/async.handler");
-const { uploadImage, deleteImage } = require("../services/upload.service");
 
-// ============================================================
-// @desc    Vendor dashboard stats
-// @route   GET /api/vendor/dashboard
-// @access  Private (vendor)
-// ============================================================
 const getDashboard = asyncHandler(async (req, res) => {
   const vendorId = req.user._id;
+
+  // STRICT FILTER: Only count valid, non-cancelled, paid (or COD) orders
+  const validOrderQuery = {
+    "items.vendor": vendorId,
+    orderStatus: { $ne: "cancelled" },
+    $or: [
+      { paymentMethod: "cod" },
+      { paymentMethod: "razorpay", isPaid: true }
+    ]
+  };
 
   const [totalProducts, totalOrders, bestSelling, recentReviews] =
     await Promise.all([
       Product.countDocuments({ vendor: vendorId }),
-      Order.countDocuments({ "items.vendor": vendorId }),
+      Order.countDocuments(validOrderQuery),
       Product.find({ vendor: vendorId })
         .sort({ sold: -1 })
         .limit(5)
@@ -30,7 +34,6 @@ const getDashboard = asyncHandler(async (req, res) => {
         .limit(10),
     ]);
 
-  // Filter reviews that actually belong to this vendor
   const filteredReviews = recentReviews.filter((r) => r.product);
 
   res.status(200).json({
@@ -41,11 +44,6 @@ const getDashboard = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Get my orders (orders containing my products)
-// @route   GET /api/vendor/orders
-// @access  Private (vendor)
-// ============================================================
 const getMyOrders = asyncHandler(async (req, res) => {
   const vendorId = req.user._id;
 
@@ -53,12 +51,22 @@ const getMyOrders = asyncHandler(async (req, res) => {
     .populate("user", "name email phone")
     .sort({ createdAt: -1 });
 
-  // Optionally: filter each order's items to only show this vendor's items
   const filtered = orders.map((order) => {
     const obj = order.toObject();
+    
+    // Filter items to only show this specific vendor's products
     obj.items = obj.items.filter(
       (item) => item.vendor.toString() === vendorId.toString()
     );
+    
+    // CALCULATE VENDOR TOTAL: Only show the vendor what THEY earned from this order
+    let vendorTotal = 0;
+    obj.items.forEach(item => {
+      vendorTotal += (item.price * item.quantity);
+    });
+    
+    obj.vendorTotal = vendorTotal; // Add this specific total to the payload
+    
     return obj;
   });
 
@@ -69,11 +77,6 @@ const getMyOrders = asyncHandler(async (req, res) => {
   });
 });
 
-// ============================================================
-// @desc    Get my reviews
-// @route   GET /api/vendor/reviews
-// @access  Private (vendor)
-// ============================================================
 const getMyReviews = asyncHandler(async (req, res) => {
   const vendorId = req.user._id;
 
