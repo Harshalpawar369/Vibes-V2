@@ -39,6 +39,12 @@
   "nodemon": "^3.1.14",
   
     
+  "passport": "^0.7.0",
+  
+    
+  "passport-google-oauth20": "^2.0.0",
+  
+    
   "razorpay": "^2.9.8",
   
     

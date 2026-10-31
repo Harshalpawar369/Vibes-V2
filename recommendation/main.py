@@ -4,11 +4,15 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from pymongo import MongoClient
 import os
+from contextlib import asynccontextmanager
+from dotenv import load_dotenv
 
-app = FastAPI()
+# Load variables from .env into os.getenv
+load_dotenv() 
 
-# Connect with a timeout so the app doesn't hang forever if MongoDB is down
-client = MongoClient(os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017/vibes"), serverSelectionTimeoutMS=5000)
+print("testing env variables:", os.getenv("MONGODB_URI"))
+
+client = MongoClient(os.getenv("MONGODB_URI"), serverSelectionTimeoutMS=5000)
 
 vectorizer = TfidfVectorizer(stop_words='english')
 catalog_matrix = None
@@ -18,15 +22,12 @@ def train_model():
     global catalog_matrix, item_ids, vectorizer
     try:
         db = client.get_database()
-        # Fetch only active products
         items = list(db["products"].find({"isActive": True}))
         
         if not items:
             return False
 
         item_ids = [str(item["_id"]) for item in items]
-        
-        # Build features using the actual schema names from your Node app
         item_texts = [f"{item.get('category', '')} {item.get('name', '')} {item.get('description', '')}" for item in items]
         
         catalog_matrix = vectorizer.fit_transform(item_texts)
@@ -35,12 +36,15 @@ def train_model():
         print(f"Model training failed: {e}")
         return False
 
-# 1. Run once on startup
-@app.on_event("startup")
-def startup_event():
+# Replaces the deprecated @app.on_event("startup")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     train_model()
+    yield # App runs here
+    # Clean up resources on shutdown if necessary
 
-# 2. Webhook to update catalog
+app = FastAPI(lifespan=lifespan)
+
 @app.post("/refresh-catalog")
 def refresh_catalog():
     if train_model():
@@ -63,7 +67,6 @@ def recommend(data: RequestData):
         
         top_ids = []
         for i in top_indices:
-            # Added a tiny threshold (0.05) so it doesn't recommend completely unrelated items
             if similarity_scores[i] > 0.05: 
                 top_ids.append(item_ids[i])
                 

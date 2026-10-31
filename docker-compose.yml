@@ -1,0 +1,26 @@
+services:
+  vibes-api:
+    build: 
+      context: ./backend
+      dockerfile: dockerfile
+    container_name: vibes
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env
+    environment:
+      # This allows the Node app to reach the Python container
+      - RECOMMENDATION_URL=http://recommendation-service:8000
+    restart: unless-stopped
+    depends_on:
+      - recommendation-service
+
+  recommendation-service:
+    build: 
+      context: ./recommendation
+    container_name: vibes-recommendation
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./recommendation/.env
+    restart: unless-stopped

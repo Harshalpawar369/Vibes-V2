@@ -315,7 +315,23 @@ const getVendorRequestStatus = asyncHandler(async (req, res) => {
   });
 });
 
+const googleCallback = asyncHandler(async (req, res) => {
+  if (!req.user) {
+    return res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/login?error=oauth_failed`);
+  }
 
+  const token = generateToken(req.user._id);
+
+  res.cookie("jwt", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 30 * 24 * 60 * 60 * 1000, 
+  });
+
+  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  res.redirect(`${clientUrl}/`); // Redirect to frontend home or dashboard
+});
 
 module.exports = {
   register,
@@ -327,4 +343,5 @@ module.exports = {
   deleteUser,
   requestVendor,
   getVendorRequestStatus,
+  googleCallback,
 };

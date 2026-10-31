@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require("uuid");
+const { randomUUID } = require("crypto");
 const Order = require("../models/Order");
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
@@ -63,7 +63,7 @@ const buildOrderFromCart = async (userId, shippingAddress, paymentMethod) => {
 
   const shippingPrice = itemsPrice > 500 ? 0 : 50;
   const totalPrice = itemsPrice + shippingPrice;
-  const orderId = `ORD-${uuidv4().slice(0, 8).toUpperCase()}`;
+  const orderId = `ORD-${randomUUID().slice(0, 8).toUpperCase()}`;
 
   const transfers = [];
   for (const vId in vendorTotals) {

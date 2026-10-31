@@ -74,6 +74,12 @@ const UserLogin = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleGoogleLogin = () => {
+    
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+    window.location.href = `${backendUrl}/api/auth/google`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
@@ -174,7 +180,7 @@ const UserLogin = () => {
                 </span>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+             <form onSubmit={handleSubmit} className="space-y-4">
                 <input
                   type="email"
                   name="email"
@@ -220,11 +226,31 @@ const UserLogin = () => {
                   {isLoading ? "Igniting..." : "Ignition →"}
                 </button>
 
+                {/* Google Auth Divider & Button */}
+                <div className="flex items-center justify-center space-x-3 py-2">
+                  <div className="h-[3px] bg-black/20 w-1/4 rounded-full"></div>
+                  <span className="text-black/60 font-black italic text-sm">OR</span>
+                  <div className="h-[3px] bg-black/20 w-1/4 rounded-full"></div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  className="w-full bg-white text-black border-4 border-black py-3 rounded-2xl font-black text-lg hover:bg-gray-100 flex items-center justify-center gap-3 transition-all active:scale-95 uppercase"
+                >
+                  <img
+                    src="https://www.svgrepo.com/show/475656/google-color.svg"
+                    alt="Google"
+                    className="w-7 h-7"
+                  />
+                  Vibe with Google
+                </button>
+
                 <div>
-                  <p className="text-black font-bold text-center">
+                  <p className="text-black font-bold text-center mt-2">
                     don't have an account?{" "}
                     <span
-                      className="text-blue-600 cursor-pointer"
+                      className="text-blue-700 cursor-pointer hover:underline"
                       onClick={() => navigate("/vibe/register")}
                     >
                       Register

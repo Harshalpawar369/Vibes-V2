@@ -44,7 +44,8 @@ const getRecommendations = asyncHandler(async (req, res) => {
 
   try {
     // 4. Call Python API
-    const pythonResponse = await fetch("http://localhost:8000/recommend", {
+    const pythonUrl = process.env.RECOMMENDATION_URL || "http://localhost:8000";
+    const pythonResponse = await fetch(`${pythonUrl}/recommend`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user_features: userTastes.trim() }),
