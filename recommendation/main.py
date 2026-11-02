@@ -7,7 +7,7 @@ import os
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
-# Load variables from .env into os.getenv
+
 load_dotenv() 
 
 print("testing env variables:", os.getenv("MONGODB_URI"))

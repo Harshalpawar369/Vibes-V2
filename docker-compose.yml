@@ -9,7 +9,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      # This allows the Node app to reach the Python container
+     
       - RECOMMENDATION_URL=http://recommendation-service:8000
     restart: unless-stopped
     depends_on:
